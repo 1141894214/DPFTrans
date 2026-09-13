@@ -1,68 +1,104 @@
-# DPF-Trans: Dynamic Pathology-Aware Feature Pruning Transformer for Efficient UAV-Based Larch Health-Status Detection
+# DPF-Trans: A Transformer-Based Dynamic Pathology-Aware Feature Pruning Framework for Efficient UAV-Based Larch Health-Status Detection
 
-Official implementation of **DPF-Trans**, a dynamic pathology-aware feature pruning Transformer for efficient UAV-based larch health-status detection.
+Official implementation of **DPF-Trans**, a Transformer-based dynamic pathology-aware feature pruning framework for efficient UAV-based larch health-status detection.
 
-DPF-Trans is designed for detecting and distinguishing **healthy**, **diseased**, and **dead** larch crowns from high-resolution RGB UAV imagery. The method addresses three key challenges in UAV forestry scenes: weak pathological cues, redundant background computation, and visual confusion among fine-grained health categories.
+DPF-Trans is designed to detect and distinguish **Healthy**, **Light Damage**, and **High Damage** larch crowns from UAV RGB imagery. The method addresses three major challenges in UAV forestry scenes: weak health-status-sensitive visual cues, redundant background computation, and visual confusion among fine-grained health categories.
 
-> Paper: *DPF-Trans: Dynamic Pathology-Aware Feature Pruning Transformer for Efficient UAV-Based Larch Health-Status Detection*
-> Code: https://github.com/1141894214/DPFTrans
+> **Paper:** *DPF-Trans: A Transformer-Based Dynamic Pathology-Aware Feature Pruning Framework for Efficient UAV-Based Larch Health-Status Detection*  
+> **Code:** https://github.com/1141894214/DPFTrans
 
 ---
 
 ## Overview
 
-UAV-based larch pest monitoring is challenging because early pest symptoms are often subtle, tree crowns are sparsely distributed in complex forest backgrounds, and different health states may look visually similar.
+Accurate detection of larch health status using UAV RGB imagery is important for forest pest monitoring and precision forestry. However, this task remains challenging because:
 
-To address these problems, DPF-Trans introduces a pathology-aware sparse detection framework that enhances weak disease-related features, dynamically prunes redundant background regions before Transformer interaction, and improves the separability of visually confusing health-status categories.
+1. weak pest-related visual cues may be suppressed during hierarchical feature extraction;
+2. large amounts of non-target forest background introduce redundant computation;
+3. Healthy, Light Damage, and High Damage crowns may exhibit highly similar visual characteristics.
 
-The overall framework consists of three main components:
+To address these issues, we propose **DPF-Trans**, a task-driven sparse Transformer framework for UAV-based larch health-status detection.
 
-1. **PA-HGNet**: a pathology-aware feature enhancement backbone.
-2. **Feature-Guided Sparse Encoder**: including FGDP, ASFI, and CCFF.
-3. **Language-Guided Multimodal Decoder with VCBL**: improving fine-grained health-status discrimination.
+The framework consists of three main components:
+
+1. **PA-HGNet** — a pathology-aware feature enhancement backbone that strengthens health-status-sensitive textures, canopy boundaries, and structural abnormalities.
+2. **Feature-Guided Sparse Encoder** — including FGDP, ASFI, and CCFF for dynamic background pruning, sparse feature interaction, and cross-scale contextual fusion.
+3. **Language-Guided Multimodal Decoder with VCBL** — introducing health-status semantic prototypes to improve discrimination among visually similar categories.
 
 ---
 
 ## Main Contributions
 
-* **Dynamic pathology-aware feature pruning framework**
-  DPF-Trans performs larch-crown-aware sparse modeling before expensive Transformer interaction, reducing redundant background computation while preserving informative crown regions.
+### 1. Dynamic Pathology-Aware Feature Pruning Framework
 
-* **PA-HGNet for weak pathological cue enhancement**
-  PA-HGNet enhances lesion textures, canopy boundaries, and structural abnormalities through pathology-aware feature recalibration and morphology-preserving downsampling.
+DPF-Trans performs task-guided dynamic pruning before expensive Transformer-style feature interaction. This allows the network to reduce redundant background computation while preserving informative larch-crown regions.
 
-* **Feature-Guided Dynamic Pruning module**
-  FGDP uses pathology-aware priors and morphological fragmentation cues to adaptively retain informative larch crown windows and suppress non-target background regions.
+### 2. Pathology-Aware High-Frequency Backbone
 
-* **Sparse topology reconstruction and cross-scale fusion**
-  ASFI reconstructs semantic and geometric dependencies among retained sparse tokens, while CCFF fuses multi-scale lesion, canopy, and semantic features into a compact visual memory.
+**PA-HGNet** is constructed by introducing two task-oriented modules into the HGNet backbone:
 
-* **Visual-Confusion Boundary Learning**
-  VCBL aligns visual queries with health-status class prototypes and introduces box-aware constraints to improve discrimination among healthy, diseased, and dead crowns.
+- **PA-GhostBlock** enhances health-status-sensitive spatial responses while maintaining lightweight feature generation.
+- **MP-Down** uses complementary max-pooling and average-pooling branches to preserve local details, canopy boundaries, and structural information during spatial downsampling.
+
+PA-HGNet additionally produces pathology-aware spatial priors that guide subsequent dynamic pruning.
+
+### 3. Feature-Guided Dynamic Pruning
+
+**FGDP** performs window-level feature selection by jointly considering:
+
+- pathology-aware spatial responses;
+- morphological fragmentation cues;
+- local visual feature representations.
+
+Instead of applying a fixed pruning ratio to every input image, FGDP dynamically determines the number of retained windows under predefined computation-budget bounds.
+
+Only informative retained windows participate in expensive sparse feature interaction, while bypassed features are reused during spatial reconstruction.
+
+### 4. Sparse Feature Interaction and Cross-Scale Fusion
+
+**ASFI** reconstructs semantic and geometric dependencies among spatially discontinuous retained features after dynamic pruning.
+
+**CCFF** subsequently integrates the reconstructed low- and middle-level features with the unpruned high-level semantic feature, producing a unified pruning-aware visual memory for the decoder.
+
+### 5. Visual-Prototype Contrastive Boundary Learning
+
+The **Language-Guided Multimodal Decoder** introduces fixed foreground semantic prototypes generated by a frozen CLIP text encoder.
+
+For the FDLC dataset, the semantic prompts correspond to:
+
+- `Healthy`
+- `Light Damage`
+- `High Damage`
+
+A separate learnable **no-object prototype** is used for unmatched decoder queries.
+
+**VCBL (Visual-Prototype Contrastive Boundary Learning)** explicitly aligns candidate-region representations with their corresponding health-status prototypes while separating them from confusing categories and the no-object prototype.
+
+The language-derived prototypes are used as auxiliary **closed-set semantic guidance** rather than for open-vocabulary detection.
 
 ---
 
 ## Performance
 
-### Forest Damages–Larch Casebearer Dataset
+### Forest Damages–Larch Casebearer (FDLC)
 
-| Method    |    mAP@50 |       FPS |    Params |    GFLOPs |
-| --------- | --------: | --------: | --------: | --------: |
-| DPF-Trans | **89.2%** | **132.3** | **28.4M** | **84.1G** |
+| Method | mAP@50 | FPS | Params | GFLOPs |
+|---|---:|---:|---:|---:|
+| **DPF-Trans** | **89.2%** | **149.3** | **28.4M** | **84.1** |
 
-Category-wise AP:
+### Category-Wise Performance
 
-| Category |    AP |
-| -------- | ----: |
-| Healthy  | 91.8% |
-| Diseased | 86.2% |
-| Dead     | 88.3% |
+| Category | AP |
+|---|---:|
+| Healthy | **91.8%** |
+| Light Damage | **87.5%** |
+| High Damage | **88.3%** |
 
-DPF-Trans achieves a strong balance between detection accuracy and inference efficiency, making it suitable for UAV-based forest pest monitoring scenarios.
+DPF-Trans provides a favorable accuracy-efficiency trade-off for foreground-sparse UAV forest imagery.
 
 ---
 
-## Framework
+## Overall Framework
 
 The DPF-Trans pipeline can be summarized as:
 
@@ -71,55 +107,126 @@ Input UAV RGB Image
         |
         v
 PA-HGNet
-  - PA-GhostBlock
-  - MP-Down
+  ├─ PA-GhostBlock
+  └─ MP-Down
         |
         v
-Multi-scale Features: C3, C4, C5
-Pathology-aware Priors: T3, T4
+Multi-scale Visual Features
+  ├─ C3
+  ├─ C4
+  └─ C5
+
+Pathology-Aware Priors
+  ├─ T3
+  └─ T4
         |
         v
 Feature-Guided Sparse Encoder
-  - FGDP: Feature-Guided Dynamic Pruning
-  - ASFI: Asymmetric Sparse Feature Interaction
-  - CCFF: Cross-Scale Contextual Feature Fusion
+  ├─ FGDP
+  │    └─ Dynamic Window-Level Pruning
+  ├─ ASFI
+  │    └─ Sparse Semantic/Geometric Interaction
+  └─ CCFF
+       └─ Cross-Scale Contextual Fusion
         |
         v
-Sparse Visual Memory
+Pruning-Aware Visual Memory
         |
         v
 Language-Guided Multimodal Decoder
-  - Query Initialization
-  - Image Cross-Attention
-  - Text Cross-Attention
-  - VCBL
+  ├─ Language-Guided Query Initialization
+  ├─ Self-Attention
+  ├─ Deformable Image Cross-Attention
+  ├─ Text Cross-Attention
+  └─ VCBL
         |
         v
-Health-Status Detection Results
+Bounding Boxes + Health-Status Categories
 ```
 
 ---
 
-## Dataset
+## Datasets
 
-### Forest Damages–Larch Casebearer
+The experiments in the paper are conducted on three public UAV-based forest pest and disease detection datasets.
 
-The main dataset used in this project is the **Forest Damages–Larch Casebearer** dataset, which contains UAV RGB images of larch forests affected by larch casebearer.
+### 1. Forest Damages–Larch Casebearer (FDLC)
 
-Dataset characteristics:
+The primary benchmark is the **Larch Casebearer detection dataset hosted on Roboflow Universe (Version 1)**, derived from the original Forest Damages–Larch Casebearer dataset released by the Swedish Forest Agency.
 
-* Image resolution: `640 × 640`
-* Number of images: `1,543`
-* Number of annotated tree instances: `10,187`
-* Categories:
+The dataset contains:
 
-  * `healthy`
-  * `diseased`
-  * `dead`
+- **835 UAV RGB images**
+- imagery acquired from five forest areas in Västergötland, Sweden:
+  - Bebehojd
+  - Ekbacka
+  - Jallasvag
+  - Kampe
+  - Nordkap
 
-The dataset is split at the image level with a ratio of `7:2:1` for training, validation, and testing. The random seed is fixed to `42`.
+The original annotations contain four categories:
 
-Expected dataset structure:
+- Healthy larch trees
+- Light-damage larch trees
+- High-damage larch trees
+- Other non-larch trees
+
+In this study, the `other` category is treated as **non-target background**. Therefore, the detection task contains three target classes:
+
+```text
+0: Healthy
+1: Light Damage
+2: High Damage
+```
+
+The predefined Roboflow split is used directly:
+
+| Split | Images |
+|---|---:|
+| Training | 615 |
+| Validation | 171 |
+| Test | 49 |
+| **Total** | **835** |
+
+No additional random repartitioning is performed.
+
+All images are resized to **640 × 640** for model training and evaluation.
+
+---
+
+### 2. Pine Wilt Disease Tree (PDT)
+
+The PDT dataset is used as an additional UAV-based forest pest and disease detection benchmark.
+
+The low-resolution version used in the experiments contains:
+
+- **5,670 images**
+- **114,307 annotated unhealthy-tree instances**
+- input resolution: **640 × 640**
+
+The task is formulated as single-class detection of unhealthy trees.
+
+---
+
+### 3. Roboflow Pine Wilt Disease (PWD)
+
+The public Roboflow PWD dataset, Version 8, contains:
+
+- **4,915 images**
+- resolution: **640 × 640**
+- 4,301 training images
+- 412 validation images
+- 202 test images
+
+The task is formulated as single-class pine wilt disease tree detection.
+
+These two additional benchmarks are used to evaluate the applicability of DPF-Trans across different UAV-based forest pest and disease detection scenarios.
+
+---
+
+## Example Dataset Structure
+
+A YOLO-style dataset structure can be organized as:
 
 ```text
 datasets/
@@ -144,49 +251,103 @@ val: images/val
 test: images/test
 
 names:
-  0: healthy
-  1: diseased
-  2: dead
+  0: Healthy
+  1: Light Damage
+  2: High Damage
 ```
+
+Please use the **official predefined dataset split** rather than randomly repartitioning FDLC.
 
 ---
 
 ## Installation
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/1141894214/DPFTrans.git
 cd DPFTrans
 ```
 
-### 2. Create environment
+### 2. Create the Environment
 
 ```bash
 conda create -n dpftrans python=3.8 -y
 conda activate dpftrans
 ```
 
-### 3. Install dependencies
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Recommended environment:
+### Experimental Environment
+
+The experiments reported in the paper were conducted using:
 
 ```text
-Python 3.8.18
-PyTorch 1.13.1
-CUDA 11.7
-GPU: NVIDIA RTX 4090 24GB
+OS: Linux
+CPU: Intel Core i9-13900K
+RAM: 64 GB
+GPU: NVIDIA RTX 4090 24 GB
+
+Python: 3.8.18
+PyTorch: 1.13.1
+CUDA: 11.7
+```
+
+---
+
+## Training Configuration
+
+The main experimental settings reported in the paper are:
+
+```text
+Input resolution: 640 × 640
+Epochs: 300
+Batch size: 8
+Data-loading workers: 4
+
+Optimizer: AdamW
+Initial learning rate: 1e-4
+Weight decay: 1e-4
+
+Decoder queries: 300
+Decoder layers: 3
+
+FGDP window size: 7
+C3 target retention budget: 50%
+C4 target retention budget: 60%
+
+Gumbel-Softmax temperature:
+1.0 -> 0.1 during training
+
+Retention-budget loss weight:
+lambda_budget = 0.1
+
+VCBL temperature:
+gamma = 0.07
+```
+
+No ImageNet- or COCO-pretrained **visual weights** are used in the controlled comparison and ablation experiments.
+
+A frozen CLIP text encoder is used only to generate fixed semantic prototypes for the predefined target categories.
+
+### Loss Weights
+
+```text
+lambda_cls  = 1.0
+lambda_L1   = 5.0
+lambda_GIoU = 2.0
+lambda_budget = 0.1
 ```
 
 ---
 
 ## Training
 
-Train DPF-Trans on the larch health-status detection dataset:
+If the current repository uses the provided training interface, DPF-Trans can be trained with:
 
 ```bash
 python train.py \
@@ -197,26 +358,13 @@ python train.py \
   --img-size 640
 ```
 
-Main training settings:
-
-```text
-Optimizer: AdamW
-Initial learning rate: 1e-4
-Weight decay: 1e-4
-Batch size: 8
-Epochs: 300
-Input size: 640 × 640
-Number of decoder queries: 300
-Decoder layers: 3
-FGDP window size: 8
-Gumbel-Softmax temperature: 1.0 -> 0.1
-```
+> Please adjust the command-line arguments according to the actual scripts and configuration files included in the repository.
 
 ---
 
 ## Evaluation
 
-Evaluate a trained checkpoint:
+Example evaluation command:
 
 ```bash
 python val.py \
@@ -226,24 +374,28 @@ python val.py \
   --img-size 640
 ```
 
-Expected metrics include:
+The paper reports the following evaluation metrics:
 
 ```text
 mAP@50
-AP for healthy crowns
-AP for diseased crowns
-AP for dead crowns
-Params
+mAP@50:95
+Recall
+Category-wise AP
+Parameters
 GFLOPs
 FPS
-Latency
+Inference Latency
 ```
+
+The primary metric for all three datasets is **mAP@50**.
+
+Category-wise AP is additionally reported for FDLC.
 
 ---
 
 ## Inference
 
-Run inference on UAV images:
+Example inference command:
 
 ```bash
 python detect.py \
@@ -253,15 +405,13 @@ python detect.py \
   --conf-thres 0.25
 ```
 
-The detection results will be saved to:
-
-```text
-runs/detect/
-```
+Please adapt the command to the actual inference script provided by the repository.
 
 ---
 
 ## Project Structure
+
+An example implementation organization is:
 
 ```text
 DPFTrans/
@@ -284,72 +434,185 @@ DPFTrans/
 └── README.md
 ```
 
+> The exact directory structure should follow the files included in the released repository.
+
 ---
 
 ## Key Modules
 
 ### PA-HGNet
 
-PA-HGNet is a pathology-aware feature enhancement backbone. It is designed to enhance weak disease-related cues before pruning and detection.
+**PA-HGNet (Pathology-Aware High-Frequency Backbone)** retains the hierarchical multi-scale feature extraction structure of HGNet while introducing two task-oriented modifications.
 
-Main components:
+#### PA-GhostBlock
 
-* **PA-GhostBlock**: enhances pathology-sensitive spatial responses.
-* **MP-Down**: preserves both high-frequency lesion boundaries and low-frequency canopy structures during downsampling.
+PA-GhostBlock combines:
+
+- lightweight Ghost-style feature generation;
+- pathology-aware spatial perception;
+- residual spatial feature recalibration.
+
+It produces both enhanced visual features and a task-driven pathology-aware spatial prior used by FGDP.
+
+#### MP-Down
+
+MP-Down replaces conventional single-branch stride-2 downsampling with complementary:
+
+- max-pooling;
+- average-pooling;
+
+branches.
+
+Max pooling preserves strong local responses and abrupt boundary variations, while average pooling maintains smoother canopy structures and contextual information.
+
+---
 
 ### FGDP
 
-FGDP performs feature-guided dynamic pruning. It partitions feature maps into local windows and estimates the importance of each window using:
+**FGDP (Feature-Guided Dynamic Pruning)** converts dense feature maps into compact sparse representations before expensive Transformer-style interaction.
 
-* pathology-aware texture prior
-* morphological fragmentation prior
-* window-level visual representation
+For each local window, FGDP jointly considers:
 
-Only informative windows are retained for sparse Transformer interaction.
+- visual feature representation;
+- pathology-aware response;
+- morphological fragmentation response.
+
+The feature maps are partitioned into non-overlapping **7 × 7 windows**.
+
+During training, differentiable window selection is implemented using Gumbel-Softmax.
+
+During inference, the number of retained windows is determined dynamically for each input image under predefined lower and upper computation-budget bounds.
+
+---
 
 ### ASFI
 
-ASFI reconstructs sparse feature topology after pruning. It combines:
+**ASFI (Asymmetric Sparse Feature Interaction)** operates only on retained informative features.
 
-* global semantic interaction
-* local deformable geometric modeling
+Its role is to reconstruct semantic and geometric dependencies among spatially discontinuous crown-related features introduced by dynamic pruning.
 
-This helps recover semantic and spatial dependencies among discontinuously distributed larch crown tokens.
+---
 
 ### CCFF
 
-CCFF performs cross-scale contextual fusion. It aggregates:
+**CCFF (Cross-Scale Contextual Feature Fusion)** combines:
 
-* fine-grained lesion textures
-* canopy-level structures
-* high-level pathological semantics
+- reconstructed C3 features;
+- reconstructed C4 features;
+- unpruned high-level C5 features.
 
-The output is a compact sparse visual memory for the decoder.
+The resulting representation forms the pruning-aware visual memory supplied to the decoder.
+
+---
+
+### Language-Guided Multimodal Decoder
+
+The decoder integrates visual information with predefined health-status semantics.
+
+A frozen CLIP text encoder generates semantic prototypes from the target-category prompts.
+
+For FDLC:
+
+```text
+Healthy
+Light Damage
+High Damage
+```
+
+The decoder performs:
+
+- language-guided object-query initialization;
+- self-attention;
+- deformable image cross-attention;
+- text cross-attention;
+- prototype-based category prediction.
+
+---
 
 ### VCBL
 
-VCBL improves fine-grained category discrimination by aligning visual queries with health-status class prototypes and applying box-aware localization constraints.
+**VCBL (Visual-Prototype Contrastive Boundary Learning)** improves category separability in the normalized embedding space.
+
+Foreground decoder queries are encouraged to align with their corresponding fixed health-status semantic prototype and remain separated from other foreground categories.
+
+A learnable **no-object prototype** explicitly models unmatched decoder queries.
+
+The term **boundary** refers to category decision boundaries in the embedding space rather than spatial crown boundaries.
+
+---
+
+## Ablation Highlights
+
+### Dynamic Pruning
+
+Under comparable computational cost:
+
+| Reduction Strategy | mAP@50 | GFLOPs |
+|---|---:|---:|
+| Dense Reference | 84.7% | 120.5 |
+| Resolution Reduction | 82.6% | 86.3 |
+| SparseViT | 85.4% | 85.7 |
+| **FGDP** | **89.2%** | **84.1** |
+
+### Semantic Guidance
+
+The semantic-decoder ablation shows progressive improvement from a conventional FFN classifier to the complete language-guided VCBL configuration.
+
+| Variant | mAP@50 |
+|---|---:|
+| Standard FFN | 86.4% |
+| FFN + Focal Loss | 87.2% |
+| FFN + SupCon | 87.6% |
+| Learnable Prototype | 87.9% |
+| CLIP Prototype | 88.3% |
+| CLIP Prototype + Language Initialization | 88.7% |
+| **Full VCBL** | **89.2%** |
+
+---
+
+## Limitations
+
+The current framework is evaluated using RGB UAV imagery.
+
+Future work may investigate:
+
+- multispectral imagery;
+- hyperspectral imagery;
+- LiDAR observations;
+- temporal observations;
+- instance segmentation;
+- oriented object detection;
+- temporal pest-progression analysis.
 
 ---
 
 ## Citation
 
-If you find this project useful, please cite our work:
+The manuscript is currently submitted to **Remote Sensing**. Formal citation information will be updated after publication.
+
+For the current code release, the following temporary citation can be used:
 
 ```bibtex
-@article{zhang2026dpftrans,
-  title={DPF-Trans: Dynamic Pathology-Aware Feature Pruning Transformer for Efficient UAV-Based Larch Health-Status Detection},
-  author={Zhang, Hailin and Wang, Shaopeng},
-  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
-  year={2026}
+@misc{zhang2026dpftrans,
+  title        = {DPF-Trans: A Transformer-Based Dynamic Pathology-Aware Feature Pruning Framework for Efficient UAV-Based Larch Health-Status Detection},
+  author       = {Zhang, Hailin and Wang, Shaopeng},
+  year         = {2026},
+  note         = {Manuscript submitted to Remote Sensing},
+  url          = {https://github.com/1141894214/DPFTrans}
 }
 ```
+
+Please replace this entry with the final journal citation after publication.
+
+---
+
+## Funding
+
+This work was supported by the **National Natural Science Foundation of China** under Grant **62066034**.
 
 ---
 
 ## Acknowledgements
-
-This work was supported by the National Natural Science Foundation of China under Grant 62066034.
 
 We thank the providers of the public UAV forestry datasets used in this study.
 
@@ -357,16 +620,30 @@ We thank the providers of the public UAV forestry datasets used in this study.
 
 ## Contact
 
-For questions, please contact:
+For questions regarding this repository, please contact:
 
 ```text
 Hailin Zhang
-College of Computer Science, Inner Mongolia University
-Email: please add your email here
+College of Computer Science
+Inner Mongolia University
+Hohhot 010021, China
+
+Email: 32409286@mail.imu.edu.cn
+```
+
+Corresponding author:
+
+```text
+Shaopeng Wang
+College of Computer Science
+Inner Mongolia University
+Hohhot 010021, China
+
+Email: wangsp@imu.edu.cn
 ```
 
 ---
 
 ## License
 
-This project is released for academic research purposes only. Please refer to the LICENSE file for more details.
+This project is released for academic research purposes. Please refer to the `LICENSE` file for the applicable terms.
